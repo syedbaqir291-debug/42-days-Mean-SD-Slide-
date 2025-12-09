@@ -62,22 +62,6 @@ def normalize_df(df):
 df_mean_n = normalize_df(df_mean)
 df_sd_n = normalize_df(df_sd)
 
-# category order (exact order requested by user)
-category_order = [
-    "Haematological",
-    "Gynecological",
-    "Urological",
-    "Neurological",
-    "Breast",
-    "Pulmonary",
-    "Gastrointestinal",
-    "Head & Neck",
-    "Thyroid",
-    "Sarcoma",
-    "Retinoblastoma",
-    "Other rare tumors"
-]
-
 # handle 'Non-specific' mapping to 'Other rare tumors'
 def handle_non_specific(df_mean, df_sd):
     mean_df = df_mean.copy()
@@ -132,7 +116,7 @@ sd_map = map_columns(df_sd_n)
 # use union of mapped columns
 all_mapped = list(dict.fromkeys(list(mean_map.values()) + list(sd_map.values())))
 
-# If some expected columns missing, still include them but they will be blanks
+# final columns order
 final_columns = [
     "First visit to acceptance",
     "Acceptance to first visit in OPD",
@@ -141,18 +125,32 @@ final_columns = [
     "First visit to First Day of Therapy"
 ]
 
+# category order
+category_order = [
+    "Haematological",
+    "Gynecological",
+    "Urological",
+    "Neurological",
+    "Breast",
+    "Pulmonary",
+    "Gastrointestinal",
+    "Head & Neck",
+    "Thyroid",
+    "Sarcoma",
+    "Retinoblastoma",
+    "Other rare tumors"
+]
+
 # prepare a DataFrame for final output
 final_df = pd.DataFrame(index=category_order, columns=final_columns)
 
 # helper: get value for category & pretty column
 def get_value(df, mapped, category, pretty_col):
-    # find key in mapped where mapped[key] == pretty_col
     keys = [k for k,v in mapped.items() if v==pretty_col]
     for k in keys:
         try:
             return df.loc[category, k]
         except Exception:
-            # maybe category not present
             return pd.NA
     return pd.NA
 
@@ -165,7 +163,6 @@ for cat in category_order:
         if pd.isna(mean_val) and pd.isna(sd_val):
             final_df.loc[cat, pretty_col] = "–"
         else:
-            # handle NaN: replace with blank
             mean_str = "" if pd.isna(mean_val) else (str(int(mean_val)) if float(mean_val).is_integer() else f"{mean_val}")
             sd_str = "" if pd.isna(sd_val) else (str(int(sd_val)) if float(sd_val).is_integer() else f"{sd_val}")
             if mean_str=="" and sd_str!="":
@@ -183,7 +180,6 @@ def to_excel_bytes(df):
     output = BytesIO()
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
         df.to_excel(writer, sheet_name="Mean_SD_Table")
-        writer.save()
     processed_data = output.getvalue()
     return processed_data
 
@@ -199,6 +195,6 @@ st.success("Ready — copy this app to your GitHub repo and deploy on Streamlit 
 st.markdown("""
 **Notes / Tips**
 - Make sure Mean and SD sheets use the same category names (or include 'Non-specific' if you want it treated as 'Other rare tumors').
-- The app is tolerant to slight column-name variants but expects the key columns that were listed earlier (FIRST_VISIT_TO_ACCEPT, ACCEPT_TO_FIRST_CONSULTANT_NOT, CONSULTANT_NOTE_TO_MDT, DAYS_BTW_MDT_TO_1ST_THERAPY, FIRST_NOTE_TO_THERAPY).
-- If you want help pushing this to a GitHub repo or making it prettier (colors / Excel formatting / direct PPT generation), tell me and I will provide the exact extra code.
+- The app is tolerant to slight column-name variants but expects the key columns listed earlier.
+- If you want help pushing this to a GitHub repo or making it prettier (colors / Excel formatting / direct PPT generation), tell me and I can provide that.
 """)
